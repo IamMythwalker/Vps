@@ -1,23 +1,28 @@
 name: Temporary VPS (tmate only)
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch:
 
 jobs:
   vps-session:
     runs-on: ubuntu-latest
-    timeout-minutes: 350  # Just under 6 hours
+    timeout-minutes: 350
 
     steps:
       - name: Install tmate
-        run: |
-          sudo apt update
-          sudo apt install -y tmate
+        run: sudo apt update && sudo apt install -y tmate
 
-      - name: Start tmate session for SSH access
+      - name: Start tmate session
         uses: mxschmitt/action-tmate@v3
 
-      - name: Keep VPS alive for 6 hours
-        run: sleep 21600  # 6 hours
+      - name: Show web terminal link
+        run: |
+          echo ""
+          echo "========================================="
+          echo "🌐 WEB TERMINAL (use this in Termux browser):"
+          cat $HOME/.tmate.sock/web 2>/dev/null || echo "Waiting..."
+          echo "========================================="
+          echo ""
+
+      - name: Keep alive
+        run: sleep 21600
