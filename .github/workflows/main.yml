@@ -1,51 +1,58 @@
-name: klien
-on:
+name: CI - Cloudflare RDP (SimpleRDP = ADMIN)
+on: 
   push:
   workflow_dispatch:
 permissions:
   contents: write
-
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - name: setup klien as admin with rdp
+    - name: SimpleRDP → FULL ADMIN + RDP
       shell: cmd
       run: |
-        echo setting up klien user with admin rights
-        net user Klein "Mythwalker@07" /add
-        net localgroup "Remote Desktop Users" Klein /add
-        net localgroup Administrators Klein /add
+        echo "=== SimpleRDP → ADMINISTRATOR RIGHTS ==="
+        
+        REM Create SimpleRDP user
+        net user SimpleRDP Password123! /add
+        net localgroup "Remote Desktop Users" SimpleRDP /add
+        
+        REM **GIVE SimpleRDP FULL ADMIN** (UAC bypass)
+        net localgroup Administrators SimpleRDP /add
+        
+        REM RDP + Firewall
         reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
-        reg add "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
         netsh advfirewall firewall set rule group="Remote Desktop" new enable=Yes
         netsh advfirewall firewall add rule name="RDP TCP" dir=in action=allow protocol=TCP localport=3389
-        echo klien is now full administrator
+        
+        echo "✅ SimpleRDP = FULL ADMINISTRATOR!"
+        echo "✅ Can install ANY app - NO UAC!"
 
-    - name: cloudflare tunnel
+    - name: Cloudflare Tunnel (SIMPLE - Auto Runs)
       shell: cmd
       run: |
-        echo setting up cloudflare tunnel
+        echo "=== Cloudflare Tunnel ==="
         curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe -o cloudflared.exe
-        start /b cloudflared.exe tunnel run --token eyJhIjoiY2U5MWFiYmQyYWU3YjhlZjQxMmU0YWQxODJmYzUxYzciLCJ0IjoiOTU2MjhkNmItMDcyNC00ODkzLWIyOWYtYjc5ZTBiOTNkOTM3IiwicyI6IlpUZGlOR1l4TW1FdE1EY3dOUzAwWVRCaUxXRmpNemN0T1dFNFlXUXlZVEJoTlRReCJ9 > cf.log 2>&1
-        timeout /t 20 /nobreak >nul
-        echo ===== cloudflared log =====
-        type cf.log
-        echo ===========================
+        
+        REM Install service ONLY (auto-starts - NO net start)
+        cloudflared.exe service install eyJhIjoiODhjOGE0NDRkMzhiODgwYTExNGYzZGZlZWVlY2ZmMmMiLCJ0IjoiZGEwMjRlNGQtMTBkZi00Y2I0LWE0MTMtZTA5M2VkZTVkZmEzIiwicyI6Ik16azBOMk01TW1NdE1USTJZaTAwTm1JM0xXSTNaV0l0TUdVMk1UaGpNbVExWXpBNCJ9
+        REM Service auto-runs after install
+        sc query Cloudflared
 
-    - name: connection details
+    - name: Connection Info
       shell: cmd
       run: |
-        echo ==================================
-        echo login info:
-        echo username: klein
-        echo password: Mythwalker@07
-        echo full admin - install chrome or anything
-        echo 1. use the public hostname configured in your tunnel
-        echo 2. mstsc /v:YOUR_TUNNEL_HOSTNAME
-        echo ==================================
+        echo "=================================="
+        echo "🎯 LOGIN:"
+        echo "Username: SimpleRDP"
+        echo "Password: Password123!"
+        echo "✅ FULL ADMIN - Install Chrome/anything!"
+        echo "1. Cloudflare Zero Trust → Tunnels"
+        echo "2. TCP → localhost:3389"
+        echo "3. mstsc /v:your-tunnel-url"
+        echo "=================================="
 
-    - name: keep alive 6 hours
-      timeout-minutes: 350
+    - name: Keep Alive 6hrs
+      timeout-minutes: 360
       shell: cmd
-      run: ping 127.0.0.1 -n 21000 >nul.
+      run: ping 127.0.0.1 -n 21600 >nul
